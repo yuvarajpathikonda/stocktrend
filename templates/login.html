@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Add a gradient background */
+        body {
+            background: linear-gradient(to right, #4facfe, #00f2fe);
+            color: rgba(0, 0, 0);;
+            font-family: Arial, sans-serif;
+        }
+
+        /* Center the content */
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Style the form */
+        .login-form {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        /* Style the input fields */
+        .form-control {
+            background: rgba(255, 255, 255, 0.2);
+            color: rgba(0, 0, 0);;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .form-control:focus {
+            background: rgba(255, 255, 255, 0.3);
+            color: rgba(0, 0, 0);;
+            border-color: rgba(0, 0, 0);;
+            box-shadow: none;
+        }
+
+        /* Style the button */
+        .btn-primary {
+            background: #4facfe;
+            border: none;
+            transition: background 0.3s, transform 0.2s;
+        }
+
+        .btn-primary:hover {
+            background: #00f2fe;
+            transform: scale(1.05);
+        }
+
+        /* Style the link */
+        .register-link {
+            color: rgba(0, 0, 0);;
+            text-decoration: underline;
+        }
+
+        .register-link:hover {
+            color: #00f2fe;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h2 class="text-center mb-4">Login</h2>
+        {% extends "success_error.html" %}
+        {% block title %}Register{% endblock %}
+        {% block content %}
+        <form method="POST" class="login-form">
+            <div class="mb-3">
+                <input type="email" name="email" class="form-control" placeholder="Email" required>
+            </div>
+            <div class="mb-3">
+                <input type="password" name="password" class="form-control" placeholder="Password" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Login</button>
+        </form>
+        <p class="text-center mt-3"><a href="/register" class="register-link">Register here</a></p>
+        {% endblock %}
+    </div>
+</body>
+</html>

@@ -1,0 +1,190 @@
+{% extends "layout.html" %}
+{% block title %}Stock Scatter Chart{% endblock %}
+{% block content %}
+    <style>
+        /* Add a gradient background */
+        body {
+            background: linear-gradient(to right, #4facfe, #00f2fe);
+            color: rgba(0, 0, 0);;
+            font-family: Arial, sans-serif;
+        }
+
+        /* Center the content */
+        .scatter-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: top;
+            align-items: center;
+            text-align: center;
+            padding: 20px;			
+        }
+
+        /* Style the form */
+        .scatter-form {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 800px;
+            margin-bottom: 20px;
+        }
+
+        /* Style the input fields */
+        .form-control {
+            background: rgba(255, 255, 255, 0.2);
+            color: rgba(0, 0, 0);;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .form-control:focus {
+            background: rgba(255, 255, 255, 0.3);
+            color: rgba(0, 0, 0);;
+            border-color: rgba(0, 0, 0);;
+            box-shadow: none;
+        }
+
+        /* Style the button */
+        .btn-primary {
+            background: #4facfe;
+            border: none;
+            transition: background 0.3s, transform 0.2s;
+        }
+
+        .btn-primary:hover {
+            background: #00f2fe;
+            transform: scale(1.05);
+        }
+
+        /* Style the chart container */
+        .chart-container {
+            background: rgb(255, 255, 255);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 100%;
+            overflow-y: auto;
+            max-height: 100%;
+            height: 100%;
+        }
+    </style>
+
+    <div class="scatter-container">
+        <h2 class="text-center mb-4">Stock Trading Activity Scatter Chart</h2>
+        <form id="stockForm" class="scatter-form row g-3">
+            <div class="col-md-4">
+                <label for="start_date" class="form-label">Start Date:</label>
+                <input type="date" id="start_date" name="start_date" class="form-control">
+            </div>
+            <div class="col-md-4">
+                <label for="end_date" class="form-label">End Date:</label>
+                <input type="date" id="end_date" name="end_date" class="form-control">
+            </div>
+            <div class="col-md-4">
+                <label for="mrktCapStart" class="form-label">Market Cap Start:</label>
+                <input type="text" id="mrktCapStart" name="mrktCapStart" class="form-control" placeholder="Market Cap Value" value="{{ request.args.get('mrktCapStart', '') }}">
+            </div>
+            <div class="col-md-4">
+                <label for="mrktCapEnd" class="form-label">Market Cap End:</label>
+                <input type="text" id="mrktCapEnd" name="mrktCapEnd" class="form-control" placeholder="Market Cap Value" value="{{ request.args.get('mrktCapEnd', '') }}">
+            </div>
+            <div class="col-md-4">
+                <label for="dollarVolStart" class="form-label">Dollar Volume Start:</label>
+                <input type="text" id="dollarVolStart" name="dollarVolStart" class="form-control" placeholder="Dollar Volume Value" value="{{ request.args.get('dollarVolStart', '') }}">
+            </div>
+            <div class="col-md-4">
+                <label for="dollarVolEnd" class="form-label">Dollar Volume End:</label>
+                <input type="text" id="dollarVolEnd" name="dollarVolEnd" class="form-control" placeholder="Dollar Volume Value" value="{{ request.args.get('dollarVolEnd', '') }}">
+            </div>
+            <div class="col-12 text-center">
+                <button type="submit" class="btn btn-primary">Load Chart</button>
+            </div>
+        </form>
+
+    <div class="chart-container">
+    	<canvas id="scatterChart"></canvas>
+    </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    
+    <script>
+        let scatterChart;
+        document.addEventListener("DOMContentLoaded", function () {
+            start_date = document.getElementById('start_date').value;
+            end_date = document.getElementById('end_date').value;
+            mrktCapStart = document.getElementById('mrktCapStart').value;
+            mrktCapEnd = document.getElementById('mrktCapEnd').value;
+            dollarVolStart = document.getElementById('dollarVolStart').value;
+            dollarVolEnd = document.getElementById('dollarVolEnd').value;
+            fetch(`/scatter_data?start_date=${start_date}&end_date=${end_date}&mrktCapStart=${mrktCapStart}&mrktCapEnd=${mrktCapEnd}&dollarVolStart=${dollarVolStart}&dollarVolEnd=${dollarVolEnd}&_=${new Date().getTime()}`)
+                .then(response => response.json())
+                .then(data => {
+                    const ctx = document.getElementById('scatterChart').getContext('2d');
+                    
+                    if (scatterChart) {
+                        scatterChart.destroy();
+                    }
+                    const scatterData = {
+                        datasets: [{
+                            label: 'Stock Tickers Over Time',
+                            data: data.data || [],
+                            backgroundColor: 'blue',
+                            borderColor: 'blue',
+                            pointRadius: 15
+                        }]
+                    };
+
+                    const scatterOptions = {
+                        responsive: true,
+                        scales: {
+                            x: {
+                                type: 'time',
+                                time: { unit: 'day' },
+                                title: { display: true, text: 'Date' }
+                            },
+                            y: {
+                                type: 'category',  // Use 'category' so tickers appear as labels
+                                labels: data.tickers || ['No Data'],  // Get tickers from JSON API
+                                title: { display: true, text: 'Stock Ticker' },
+                                offset: true,
+                                ticks: {
+                                    font: { size: 10 } // Reduce font size for better fit
+                                }
+                            }
+                        },
+                        plugins: {
+                            tooltip: {
+                                enabled: true,
+                                mode: 'nearest',
+                                intersect: false,
+                                callbacks: {
+                                    label: function (tooltipItem) {
+                                        return [
+                                            `Date: ${tooltipItem.raw.x || 'N/A'}`,
+                                            `Ticker: ${tooltipItem.raw.ticker || 'N/A'}`,
+                                            `Company: ${tooltipItem.raw.companyname || 'N/A'}`,
+                                            `Change %: ${tooltipItem.raw.change_perc || 'N/A'}`,
+                                            `Volume * Price: ${tooltipItem.raw.volume_price || 'N/A'}`,
+                                            `Market Cap: ${tooltipItem.raw.market_cap || 'N/A'}`,
+                                            `Industry: ${tooltipItem.raw.industry || 'N/A'}`
+                                        ];    
+                                    }
+                                },
+                                bodyFont: { size: 12 },
+                                titleFont: { size: 14 },
+                                displayColors: false,
+                                position: 'nearest',  // Ensures tooltip adjusts dynamically
+                            }
+                        }
+                    };
+                    scatterChart = new Chart(ctx, { type: 'scatter', data: scatterData, options: scatterOptions });
+                })
+                .catch(error => {
+                    console.error('Error loading scatter data:', error);
+                });
+        });
+    </script>
+{% endblock %}

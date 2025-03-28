@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Trading App{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation Menu -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid justify-content-center">
+            <a class="navbar-brand" href="/">Stock Analysis</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/upload_csv">Upload CSV</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/scatter_chart">Stock Chart</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/stock_search">Stock Search</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <div class="container mt-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        {% block content %}{% endblock %}
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Session Expiry Warning Modal -->
+    <div id="sessionModal" class="modal fade" tabindex="-1" aria-labelledby="sessionModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Session Expiring Soon</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Your session will expire in <span id="sessionTimer">5</span> minutes. Click "Stay Logged In" to continue.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" onclick="resetSession()">Stay Logged In</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let sessionTimeout = 1800;  // 30 minutes session timeout in seconds
+        let warningTime = 300;  // Show warning 5 minutes (300 seconds) before timeout
+        let countdown;
+
+        function startSessionTimer() {
+            setTimeout(() => {
+                document.getElementById("sessionTimer").innerText = "5";
+                let modal = new bootstrap.Modal(document.getElementById("sessionModal"));
+                modal.show();
+
+                // Start countdown from 5 minutes
+                let timeLeft = 5;
+                countdown = setInterval(() => {
+                    timeLeft--;
+                    document.getElementById("sessionTimer").innerText = timeLeft;
+                    if (timeLeft <= 0) {
+                        clearInterval(countdown);
+                        window.location.href = "/logout";  // Auto logout
+                    }
+                }, 60000); // Update every minute
+            }, (sessionTimeout - warningTime) * 1000);
+        }
+
+        function resetSession() {
+            clearInterval(countdown);
+            fetch('/reset_session').then(() => {
+                location.reload();
+            });
+        }
+
+        startSessionTimer();
+    </script>
+</body>
+</html>
