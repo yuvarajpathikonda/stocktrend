@@ -98,33 +98,45 @@
 
     <div class="search-container">
         <h2 class="text-center mb-4">Stock Trading Activity Search</h2>
-        <form id="stockSearchForm" class="search-form row g-3">
-            <div class="col-md-4">
+        <form id="stockSearchForm" class="search-form row g-4">
+            <div class="col-md-6">
                 <label for="start_date" class="form-label">Start Date:</label>
                 <input type="date" id="start_date" name="start_date" class="form-control">
             </div>
-            <div class="col-md-4">
+            <div class="col-md-6">
                 <label for="end_date" class="form-label">End Date:</label>
                 <input type="date" id="end_date" name="end_date" class="form-control">
             </div>
-            <div class="col-md-4">
+            <div class="col-md-6">
                 <label for="mrktCapStart" class="form-label">Market Cap Start:</label>
                 <input type="text" id="mrktCapStart" name="mrktCapStart" class="form-control" placeholder="Market Cap Value" value="{{ request.args.get('mrktCapStart', '') }}">
             </div>
-            <div class="col-md-4">
+            <div class="col-md-6">
                 <label for="mrktCapEnd" class="form-label">Market Cap End:</label>
                 <input type="text" id="mrktCapEnd" name="mrktCapEnd" class="form-control" placeholder="Market Cap Value" value="{{ request.args.get('mrktCapEnd', '') }}">
             </div>
-            <div class="col-md-4">
+            <div class="col-md-6">
                 <label for="dollarVolStart" class="form-label">Dollar Volume Start:</label>
                 <input type="text" id="dollarVolStart" name="dollarVolStart" class="form-control" placeholder="Dollar Volume Value" value="{{ request.args.get('dollarVolStart', '') }}">
             </div>
-            <div class="col-md-4">
+            <div class="col-md-6">
                 <label for="dollarVolEnd" class="form-label">Dollar Volume End:</label>
                 <input type="text" id="dollarVolEnd" name="dollarVolEnd" class="form-control" placeholder="Dollar Volume Value" value="{{ request.args.get('dollarVolEnd', '') }}">
             </div>
+            <div class="col-md-6">
+                <label for="ticker" class="form-label">Ticker:</label>
+                <input type="text" id="ticker" name="ticker" class="form-control" placeholder="Ticker Name" value="{{ request.args.get('ticker', '') }}">
+            </div>
+            <div class="col-md-6">
+                <label for="price_unit" class="form-label">Price Unit:</label>
+                <select name="price_unit" class="form-control">
+                    <option value="Cr">Crores</option>
+                    <option value="L">Lakhs</option>
+                </select>
+            </div>
             <div class="col-12 text-center">
                 <button type="submit" class="btn btn-primary">Search</button>
+                <button type="button" id="clearForm" class="btn btn-secondary ms-2">Clear</button>
             </div>
         </form>
 
@@ -184,6 +196,16 @@
             document.querySelectorAll(".toggle-value").forEach(td => {
                 td.innerText = toggleOn ? td.dataset.raw : td.dataset.formatted;
             });
+        });
+    </script>
+    <script>
+        document.getElementById("clearForm").addEventListener("click", function () {
+            // Reset all input fields in the form
+            document.getElementById("stockSearchForm").reset();
+            // Optionally, clear the URL query parameters
+            const url = new URL(window.location.href);
+            url.search = ""; // Clear query parameters
+            window.history.replaceState({}, document.title, url);
         });
     </script>
 {% endblock %}

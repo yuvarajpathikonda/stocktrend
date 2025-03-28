@@ -1,5 +1,6 @@
 import os
 from flask import Flask, render_template, request, redirect, session, flash, url_for, jsonify
+import plotly.express as px
 import pandas as pd
 import mysql.connector
 from flask_bcrypt import Bcrypt
@@ -120,6 +121,8 @@ def stock_search():
 
     start_date = request.args.get('start_date', '')
     end_date = request.args.get('end_date', '')
+    ticker = request.args.get('ticker', '')
+    unit = request.args.get('price_unit', '')
     mrktCapStart = request.args.get('mrktCapStart', '')
     mrktCapEnd = request.args.get('mrktCapEnd', '')
     dollarVolStart = request.args.get('dollarVolStart', '')
@@ -138,26 +141,31 @@ def stock_search():
         query += " AND date <= %s"
         total_records_query += " AND date <= %s"
         params.append(end_date)
+
+    if ticker:
+        query += " AND ticker LIKE %s"
+        total_records_query += " AND ticker LIKE %s"
+        params.append(f"%{ticker}%")    
     
     if mrktCapStart:
         query += " AND market_cap >= %s"
         total_records_query += " AND market_cap >= %s"
-        params.append(mrktCapStart)
+        params.append(convert_value(unit,mrktCapStart))
 
     if mrktCapEnd:
         query += " AND market_cap <= %s"
         total_records_query += " AND market_cap <= %s"
-        params.append(mrktCapEnd)
+        params.append(convert_value(unit,mrktCapEnd))
     
     if dollarVolStart:
         query += " AND volume_price >= %s"
         total_records_query += " AND volume_price >= %s"
-        params.append(dollarVolStart)
+        params.append(convert_value(unit,dollarVolStart))
     
     if dollarVolEnd:
         query += " AND volume_price <= %s"
         total_records_query += " AND volume_price <= %s"
-        params.append(dollarVolEnd)
+        params.append(convert_value(unit,dollarVolEnd))
     db.commit()
     cursor.execute(total_records_query, tuple(params))
     total_records = cursor.fetchone()[0]
@@ -182,10 +190,16 @@ def logout():
 
 
 # Fetch stock data with optional date range filter
-@app.route('/scatter_data')
-def scatter_data():
+@app.route('/scatter_chart')
+def scatter_chart():
+    if 'user' not in session:
+        flash("Please log in first!", "warning")
+        return redirect('/')
+
     start_date = request.args.get('start_date', '')
     end_date = request.args.get('end_date', '')
+    ticker = request.args.get('ticker', '')
+    unit = request.args.get('price_unit', '')
     mrktCapStart = request.args.get('mrktCapStart', '')
     mrktCapEnd = request.args.get('mrktCapEnd', '')
     dollarVolStart = request.args.get('dollarVolStart', '')
@@ -205,26 +219,31 @@ def scatter_data():
         query += " AND date <= %s"
         distinct_tickers += " AND date <= %s"
         params.append(end_date)
+
+    if ticker:
+        query += " AND ticker LIKE %s"
+        distinct_tickers += " AND ticker LIKE %s"
+        params.append(f"%{ticker}%")
     
     if mrktCapStart:
         query += " AND market_cap >= %s"
         distinct_tickers += " AND market_cap >= %s"
-        params.append(mrktCapStart)
+        params.append(convert_value(unit,mrktCapStart))
 
     if mrktCapEnd:
         query += " AND market_cap <= %s"
         distinct_tickers += " AND market_cap <= %s"
-        params.append(mrktCapEnd)
+        params.append(convert_value(unit,mrktCapEnd))
     
     if dollarVolStart:
         query += " AND volume_price >= %s"
         distinct_tickers += " AND volume_price >= %s"
-        params.append(dollarVolStart)
+        params.append(convert_value(unit,dollarVolStart))
     
     if dollarVolEnd:
         query += " AND volume_price <= %s"
         distinct_tickers += " AND volume_price <= %s"
-        params.append(dollarVolEnd)
+        params.append(convert_value(unit,dollarVolEnd))
 
     query += " ORDER BY ticker ASC"
     distinct_tickers += " ORDER BY ticker ASC"
@@ -240,21 +259,55 @@ def scatter_data():
     if not rows:
         print(f"No data found between {start_date} and {end_date}")
 
-    data = [{"x": row[1].strftime("%Y-%m-%d"), "y": tickers[row[2]], 
+    data = [{"x": row[1].strftime("%Y-%m-%d"), 
+             "y": row[2], 
              "ticker": row[2],
              "companyname": row[3],
              "change_perc": row[4],
+             "volume_price_raw": row[5],
              "volume_price": format_value(row[5]),
              "market_cap": format_value(row[6]),
              "industry": row[7]
              } for row in rows]
     print(list(tickers.keys()), data)  # Debugging log
-    return jsonify({"tickers": list(tickers.keys()), "data": data})    
+    # Convert to DataFrame
+    df = pd.DataFrame(data)
+    
+    # Get unique tickers for Y-axis ordering
+    unique_tickers = df["y"].unique()[::-1]  # Reverse to match order from top to bottom
+    ticker_indices = list(range(len(unique_tickers)))  # Assign indices to tickers
+    ticker_map = dict(zip(unique_tickers, ticker_indices))  # Mapping tickers to indices
+    df["ticker"] = df["y"].map(ticker_map)  # Map tickers to numeric Y values
 
-# Scatter Chart Route
-@app.route('/scatter_chart')
-def scatter_chart():
-    return render_template('scatter_chart.html')
+    # Bubble Chart
+    fig = px.scatter(df, x="x", y="ticker", size="volume_price_raw", color="change_perc",
+                 hover_data={"x":False,"volume_price_raw":False,"companyname":True, "industry":True, "market_cap":True, "volume_price":True},
+                 labels={"x": "Date", "y": "Stock Index", "ticker": "Ticker","change_perc": "Change (%)", "companyname": "Company Name", "industry": "Industry", "market_cap": "Market Cap", "volume_price": "Volume Price"},
+                 title="Stock Volume Bubble Chart")
+
+    # Adjust bubble opacity and color scale
+    # Improve Layout
+    fig.update_traces(textposition='middle right')  # Position text inside the bubble
+    fig.update_layout(
+        yaxis=dict(
+            title="Ticker Name",
+            tickmode="array",
+            tickvals=ticker_indices,  # Ensure all tickers are shown
+            ticktext=unique_tickers,  # Show actual ticker names
+            range=[-0.5, len(unique_tickers) - 0.5],  # Adjust range to fit all tickers
+            fixedrange=False,  # Allow scrolling
+        ),
+        xaxis=dict(
+            tickformat="%Y-%m-%d",  # Format as Date only
+            type="category" if len(df) < 5 else "date",  # Force categorical if fewer records
+        ),
+        showlegend=False,
+        height=1000,  # Reduce height to enable scrolling
+        margin=dict(l=150, r=50, t=50, b=50),  # Adjust margins for better view
+    )
+    graph_html = fig.to_html(full_html=False)
+    
+    return render_template("scatter_chart.html", graph_html=graph_html)
 
 # Function to Check Allowed File Extensions
 def allowed_file(filename):
@@ -285,6 +338,10 @@ def insert_csv_data(csv_file):
 # Route to Upload CSV
 @app.route('/upload_csv', methods=['GET', 'POST'])
 def upload_csv():
+    if 'user' not in session:
+        flash("Please log in first!", "warning")
+        return redirect('/')
+        
     if request.method == 'POST':
         if 'file' not in request.files:
             flash("No file selected!", "danger")
@@ -323,6 +380,14 @@ def format_value(value):
         return f"{round(value / 100000, 2)} L"
     else:
         return f"{value}"  # Keep original value if less than 1 lakh
+
+def convert_value(unit,value):
+        """Convert Market Cap from 'Cr' or 'Lakh' to numeric value in crores."""
+        if "Cr" in unit:
+            return float(value) * 10000000
+        elif "L" in unit:
+            return float(value) *100000  
+        return 0    
 
 if __name__ == '__main__':
     app.run(debug=True)
