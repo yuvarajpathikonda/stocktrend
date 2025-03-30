@@ -1,0 +1,166 @@
+Step 1: Choose AWS Services
+You will need the following AWS services:
+
+EC2 (Elastic Compute Cloud) – To host your Flask application.
+
+RDS (Relational Database Service) - MySQL – To manage the MySQL database.
+
+S3 (Simple Storage Service) [Optional] – For file uploads if needed.
+
+Step 2: Set Up MySQL Database on AWS RDS
+Go to the AWS Management Console → Open RDS.
+
+Click Create Database → Select MySQL.
+
+Choose Free Tier (or a paid plan for production).
+
+Set:
+
+DB instance identifier: flaskdb
+
+Master username: admin
+
+Password: your-secure-password
+
+Under Connectivity, enable Public Access (so EC2 can connect).
+
+Click Create Database.
+
+Once created, copy the endpoint URL (e.g., flaskdb.xxxx.rds.amazonaws.com).
+
+Step 3: Launch an EC2 Instance for Flask
+Go to AWS EC2 Console → Click Launch Instance.
+
+Choose Ubuntu 22.04 LTS (or Amazon Linux 2).
+
+Select Instance Type → t2.micro (Free Tier).
+
+Configure:
+
+Security Group: Allow inbound rules:
+
+Port 22 (SSH) → Your IP only.
+
+Port 5000 (Flask) → Open for testing.
+
+Port 80, 443 (for future web access).
+
+Add Storage → Default 8GB is fine.
+
+Launch the instance and download the SSH key.
+
+Step 4: Connect to EC2 and Deploy Flask App
+SSH into the EC2 instance:
+
+bash
+Copy
+Edit
+ssh -i your-key.pem ubuntu@your-ec2-public-ip
+Update system packages:
+
+bash
+Copy
+Edit
+sudo apt update && sudo apt upgrade -y
+Install dependencies:
+
+bash
+Copy
+Edit
+sudo apt install python3-pip python3-venv -y
+Clone your Flask app repository:
+
+bash
+Copy
+Edit
+git clone https://github.com/yourusername/your-flask-app.git
+cd your-flask-app
+Set up a virtual environment:
+
+bash
+Copy
+Edit
+python3 -m venv venv
+source venv/bin/activate
+Install requirements:
+
+bash
+Copy
+Edit
+pip install -r requirements.txt
+Step 5: Configure Flask App to Use RDS
+Modify config.py (or your database config in app.py):
+
+python
+Copy
+Edit
+DB_HOST = "flaskdb.xxxx.rds.amazonaws.com"
+DB_USER = "admin"
+DB_PASSWORD = "your-secure-password"
+DB_NAME = "yourdatabase"
+Step 6: Run Flask App on EC2
+Run Flask app:
+
+bash
+Copy
+Edit
+python app.py
+Access it using:
+
+arduino
+Copy
+Edit
+http://your-ec2-public-ip:5000
+Step 7: Set Up Gunicorn & Nginx (Production)
+Install Gunicorn:
+
+bash
+Copy
+Edit
+pip install gunicorn
+Run Flask with Gunicorn:
+
+bash
+Copy
+Edit
+gunicorn -w 4 -b 0.0.0.0:5000 app:app
+Install Nginx:
+
+bash
+Copy
+Edit
+sudo apt install nginx -y
+Configure Nginx:
+
+bash
+Copy
+Edit
+sudo nano /etc/nginx/sites-available/flaskapp
+Add:
+
+nginx
+Copy
+Edit
+server {
+    listen 80;
+    server_name your-ec2-public-ip;
+
+    location / {
+        proxy_pass http://127.0.0.1:5000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+Enable the Nginx config:
+
+bash
+Copy
+Edit
+sudo ln -s /etc/nginx/sites-available/flaskapp /etc/nginx/sites-enabled
+sudo systemctl restart nginx
+Now, access your Flask app at:
+
+arduino
+Copy
+Edit
+http://your-ec2-public-ip

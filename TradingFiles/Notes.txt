@@ -1,0 +1,6 @@
+Open your browser and go to:
+
+Register: http://127.0.0.1:5000/register
+Login: http://127.0.0.1:5000/
+
+tradingdb - root/admin
