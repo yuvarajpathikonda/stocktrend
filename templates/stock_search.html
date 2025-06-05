@@ -134,6 +134,14 @@
                     <option value="L">Lakhs</option>
                 </select>
             </div>
+            <div class="col-md-6">
+                <label for="averageDailyRangeStart" class="form-label">ADR Start:</label>
+                <input type="text" id="averageDailyRangeStart" name="averageDailyRangeStart" class="form-control" placeholder="Average Daily Range Value" value="{{ request.args.get('averageDailyRangeStart', '') }}">
+            </div>
+            <div class="col-md-6">
+                <label for="averageDailyRangeEnd" class="form-label">ADR End:</label>
+                <input type="text" id="averageDailyRangeEnd" name="averageDailyRangeEnd" class="form-control" placeholder="Average Daily Range Value" value="{{ request.args.get('averageDailyRangeEnd', '') }}">
+            </div>
             <div class="col-12 text-center">
                 <button type="submit" class="btn btn-primary">Search</button>
                 <button type="button" id="clearForm" class="btn btn-secondary ms-2">Clear</button>
@@ -157,6 +165,7 @@
                     <th>Volume * Price</th>
                     <th>Market Capitalization</th>
                     <th>Industry</th>
+                    <th>ADR</th>
                 </tr>
             </thead>
             <tbody>
@@ -169,6 +178,7 @@
                         <td class="toggle-value" data-raw="{{ row["volume_price"] }}" data-formatted="{{ row["volume_price_formatted"] }}">{{ row["volume_price_formatted"] }}</td>
                         <td class="toggle-value" data-raw="{{ row["market_cap"] }}" data-formatted="{{ row["market_cap_formatted"] }}">{{ row["market_cap_formatted"] }}</td>
                         <td>{{ row["industry"] }}</td>
+                        <td>{{ row["avg_daily_range"] }}</td>
                     </tr>
                 {% endfor %}
             </tbody>

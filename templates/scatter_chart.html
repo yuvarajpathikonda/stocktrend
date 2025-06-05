@@ -74,7 +74,7 @@
 
     <div class="scatter-container">
         <h2 class="text-center mb-4">Stock Trading Activity Scatter Chart</h2>
-        <form id="scatterSearchForm" class="scatter-form row g-4">
+        <form id="scatterSearchForm" class="scatter-form row g-4" target="_blank">
             <div class="col-md-6">
                 <label for="start_date" class="form-label">Start Date:</label>
                 <input type="date" id="start_date" name="start_date" class="form-control">
@@ -109,6 +109,14 @@
                     <option value="Cr">Crores</option>
                     <option value="L">Lakhs</option>
                 </select>
+            </div>
+            <div class="col-md-6">
+                <label for="averageDailyRangeStart" class="form-label">ADR Start:</label>
+                <input type="text" id="averageDailyRangeStart" name="averageDailyRangeStart" class="form-control" placeholder="Average Daily Range Value" value="{{ request.args.get('averageDailyRangeStart', '') }}">
+            </div>
+            <div class="col-md-6">
+                <label for="averageDailyRangeEnd" class="form-label">ADR End:</label>
+                <input type="text" id="averageDailyRangeEnd" name="averageDailyRangeEnd" class="form-control" placeholder="Average Daily Range Value" value="{{ request.args.get('averageDailyRangeEnd', '') }}">
             </div>
             <div class="col-12 text-center">
                 <button type="submit" class="btn btn-primary">Load Chart</button>

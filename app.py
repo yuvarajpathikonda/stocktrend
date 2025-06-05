@@ -127,6 +127,8 @@ def stock_search():
     mrktCapEnd = request.args.get('mrktCapEnd', '')
     dollarVolStart = request.args.get('dollarVolStart', '')
     dollarVolEnd = request.args.get('dollarVolEnd', '')
+    averageDailyRangeStart = request.args.get('averageDailyRangeStart', '')
+    averageDailyRangeEnd = request.args.get('averageDailyRangeEnd', '')
 
     query = "SELECT SQL_NO_CACHE * FROM trading_data WHERE 1=1"
     total_records_query = "SELECT SQL_NO_CACHE COUNT(*) FROM trading_data WHERE 1=1"
@@ -166,6 +168,17 @@ def stock_search():
         query += " AND volume_price <= %s"
         total_records_query += " AND volume_price <= %s"
         params.append(convert_value(unit,dollarVolEnd))
+
+    if averageDailyRangeStart:
+        query += " AND avg_daily_range >= %s"
+        total_records_query += " AND avg_daily_range >= %s"
+        params.append(averageDailyRangeStart)
+
+    if averageDailyRangeEnd:
+        query += " AND avg_daily_range <= %s"
+        total_records_query += " AND avg_daily_range <= %s"
+        params.append(averageDailyRangeEnd)
+
     db.commit()
     cursor.execute(total_records_query, tuple(params))
     total_records = cursor.fetchone()[0]
@@ -177,7 +190,7 @@ def stock_search():
     raw_data = cursor.fetchall()
 
     data = [{"date": row[1].strftime("%Y-%m-%d"), "ticker": row[2], "companyname": row[3], "change_perc": row[4],
-            "volume_price": row[5], "volume_price_formatted": format_value(row[5]), "market_cap": row[6], "market_cap_formatted": format_value(row[6]), "industry": row[7]} for row in raw_data]
+            "volume_price": row[5], "volume_price_formatted": format_value(row[5]), "market_cap": row[6], "market_cap_formatted": format_value(row[6]), "industry": row[7], "ADR": row[8]} for row in raw_data]
 
     return render_template('stock_search.html', user=session['user'], data=data, page=page, total_pages=total_pages)
 
@@ -204,6 +217,8 @@ def scatter_chart():
     mrktCapEnd = request.args.get('mrktCapEnd', '')
     dollarVolStart = request.args.get('dollarVolStart', '')
     dollarVolEnd = request.args.get('dollarVolEnd', '')
+    averageDailyRangeStart = request.args.get('averageDailyRangeStart', '')
+    averageDailyRangeEnd = request.args.get('averageDailyRangeEnd', '')
 
 
     query = "SELECT SQL_NO_CACHE * FROM trading_data WHERE 1=1 "
@@ -244,6 +259,15 @@ def scatter_chart():
         query += " AND volume_price <= %s"
         distinct_tickers += " AND volume_price <= %s"
         params.append(convert_value(unit,dollarVolEnd))
+    if averageDailyRangeStart:
+        query += " AND avg_daily_range >= %s"
+        distinct_tickers += " AND avg_daily_range >= %s"
+        params.append(averageDailyRangeStart)
+
+    if averageDailyRangeEnd:
+        query += " AND avg_daily_range <= %s"
+        distinct_tickers += " AND avg_daily_range <= %s"
+        params.append(averageDailyRangeEnd)    
 
     query += " ORDER BY ticker ASC"
     distinct_tickers += " ORDER BY ticker ASC"
@@ -267,7 +291,8 @@ def scatter_chart():
              "volume_price_raw": row[5],
              "volume_price": format_value(row[5]),
              "market_cap": format_value(row[6]),
-             "industry": row[7]
+             "industry": row[7],
+             "avg_daily_range": row[8]
              } for row in rows]
     print(list(tickers.keys()), data)  # Debugging log
     # Convert to DataFrame
@@ -282,7 +307,7 @@ def scatter_chart():
     # Bubble Chart
     fig = px.scatter(df, x="x", y="ticker", size="volume_price_raw", color="change_perc",
                  hover_data={"x":False,"volume_price_raw":False,"companyname":True, "industry":True, "market_cap":True, "volume_price":True},
-                 labels={"x": "Date", "y": "Stock Index", "ticker": "Ticker","change_perc": "Change (%)", "companyname": "Company Name", "industry": "Industry", "market_cap": "Market Cap", "volume_price": "Volume Price"},
+                 labels={"x": "Date", "y": "Stock Index", "ticker": "Ticker","change_perc": "Change (%)", "companyname": "Company Name", "industry": "Industry", "market_cap": "Market Cap", "volume_price": "Volume Price", "avg_daily_range": "ADR"},
                  title="Stock Volume Bubble Chart")
 
     # Adjust bubble opacity and color scale
@@ -318,14 +343,25 @@ def allowed_file(filename):
 def insert_csv_data(csv_file):
     try:
         df = pd.read_csv(csv_file)  # Read CSV into DataFrame
+        df.columns = df.iloc[1]  # Set the second row as header
+        df = df[2:]  # Skip the first two rows (old header + new header row)
         current_date = datetime.now().strftime('%Y-%m-%d')
         
         for _, row in df.iterrows():
             sql = """
-                INSERT INTO trading_data (date, ticker, companyname, change_perc, volume_price, market_cap, industry)
+                INSERT INTO trading_data (date, ticker, companyname, change_perc, volume_price, market_cap, industry, avg_daily_range)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
             """
-            values = (current_date, row['Ticker'], row['Description'], row['Change %'], row['Volume*Price'], row['Market Capitalization'], row['Industry'])
+            values = (
+                current_date,
+                row.iloc[0],  # Ticker
+                row.iloc[1],  # Description
+                row.iloc[4],  # Change %
+                row.iloc[2],  # Volume*Price
+                row.iloc[5],  # Market Capitalization
+                row.iloc[8],  # Industry
+                row.iloc[7]   # Avg Daily Range
+            )
             cursor.execute(sql, values)
         
         db.commit()
